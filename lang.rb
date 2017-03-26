@@ -125,8 +125,7 @@ class Lexer
       return LexerToken.new(:op, read_op())
     end
 
-    @input.fail("Can't handle character: " + ch)
-    return nil
+    @input.croak("Can't handle character: " + ch)
   end
 
   def peek()
@@ -159,7 +158,7 @@ class InputStreamer
   def next()
     @pos += 1
     ch = @source[@pos]
-    if ch == '\n'
+    if ch == "\n"
       @col = 0
       @line += 1
     else
@@ -176,8 +175,8 @@ class InputStreamer
     @pos >= @source.length
   end
 
-  def fail(message)
-    fail message + ' (' + line + ':' + col + ')'
+  def croak(message)
+    fail "#{message} (#{@line}:#{@col})"
   end
 end
 
