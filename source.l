@@ -1,2 +1,3 @@
-x = 3 + 5
-y = "hi"
+var x = 3 + 5
+var y = "hi"
+var number = 234

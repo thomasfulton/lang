@@ -50,16 +50,13 @@ end
 
 class Lexer
 
-  @current = nil
-
-  @input
-
   def initialize(input)
     @input = input
+    @keywords = ['print', 'var']
   end
 
   def keyword?(string)
-    @keyword.include? string
+    @keywords.include? string
   end
 
   def digit?(ch)
@@ -82,6 +79,10 @@ class Lexer
     ch =~ /[[:space:]]/
   end
 
+  def str_start?(ch)
+    ch == '"'
+  end
+
   def read_while(proc)
     str = ""
     ch = @input.peek()
@@ -92,16 +93,33 @@ class Lexer
     str
   end
 
-  def read_number()
-    read_while(Proc.new { |ch| digit?(ch) })
+  def read_num()
+    LexerToken.new(:num, read_while(Proc.new { |ch| digit?(ch) }))
   end
 
-  def read_identifier()
-    read_while(Proc.new { |ch| id?(ch) })
+  def read_id()
+    str = read_while(Proc.new { |ch| id?(ch) })
+    if keyword?(str)
+      LexerToken.new(:kw, str)
+    else
+      LexerToken.new(:var, str)
+    end
   end
 
   def read_op()
-    read_while(Proc.new { |ch| op?(ch) })
+    LexerToken.new(:op, read_while(Proc.new { |ch| op?(ch) }))
+  end
+
+  def read_str()
+    str = @input.peek()
+    ch = @input.next()
+    while ch != '"'
+      str += ch
+      ch = @input.next()
+    end
+    str += ch
+    @input.next()
+    LexerToken.new(:str, str)
   end
 
   def read_next()
@@ -114,15 +132,19 @@ class Lexer
     ch = @input.peek()
 
     if digit?(ch)
-      return LexerToken.new(:number, read_number())
+      return read_num()
     end
 
     if id_start?(ch)
-      return LexerToken.new(:identifier, read_identifier())
+      return read_id()
     end
 
     if op?(ch)
-      return LexerToken.new(:op, read_op())
+      return read_op()
+    end
+
+    if str_start?(ch)
+      return read_str()
     end
 
     @input.croak("Can't handle character: " + ch)
