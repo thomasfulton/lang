@@ -8,7 +8,7 @@ end
 
 class ASTIntNode < ASTLiteralNode
   def initialize()
-    @type = "int"
+    @type = :int
   end
 end
 
@@ -24,13 +24,126 @@ end
 
 class ASTPlusOperatorNode < ASTBinaryOperatorNode
   def initialize()
-    @operator = "+"
+    @operator = :plus
   end
 end
 
 class ASTAssignmentNode < ASTBinaryOperatorNode
   def initialize()
-    @operator = "="
+    @operator = :equals
+  end
+end
+
+class LexerToken
+  attr_accessor :type
+  attr_accessor :value
+
+  def initialize(type, value)
+    @type = type
+    @value = value
+  end
+
+  def to_s
+    "LexerToken(#{type}, #{value})"
+  end
+end
+
+class Lexer
+
+  @current = nil
+
+  @input
+
+  def initialize(input)
+    @input = input
+  end
+
+  def keyword?(string)
+    @keyword.include? string
+  end
+
+  def digit?(ch)
+    ch =~ /[[:digit:]]/
+  end
+
+  def id_start?(ch)
+    ch =~ /[a-z_]/
+  end
+
+  def id?(ch)
+    id_start?(ch) || digit?(ch)
+  end
+
+  def op?(ch)
+    ch =~ /[+\-*\/%=&|<>!?]/
+  end
+
+  def whitespace?(ch)
+    ch =~ /[[:space:]]/
+  end
+
+  def read_while(proc)
+    str = ""
+    ch = @input.peek()
+    while !@input.eof?() && proc.call(ch)
+      str += ch
+      ch = @input.next()
+    end
+    str
+  end
+
+  def read_number()
+    read_while(Proc.new { |ch| digit?(ch) })
+  end
+
+  def read_identifier()
+    read_while(Proc.new { |ch| id?(ch) })
+  end
+
+  def read_op()
+    read_while(Proc.new { |ch| op?(ch) })
+  end
+
+  def read_next()
+    read_while(Proc.new { |ch| whitespace?(ch) })
+
+    if @input.eof?()
+      return nil
+    end
+
+    ch = @input.peek()
+
+    if digit?(ch)
+      return LexerToken.new(:number, read_number())
+    end
+
+    if id_start?(ch)
+      return LexerToken.new(:identifier, read_identifier())
+    end
+
+    if op?(ch)
+      return LexerToken.new(:op, read_op())
+    end
+
+    @input.fail("Can't handle character: " + ch)
+    return nil
+  end
+
+  def peek()
+    if @current == nil
+      @current = read_next
+    end
+    @current
+  end
+
+  def next()
+    tok = @current
+    @current = nil
+    tok || read_next()
+  end
+
+  def eof()
+    peek() == nil
   end
 end
 
@@ -55,22 +168,21 @@ class InputStreamer
     ch
   end
 
-  def peek()
-    @source[@pos]
+  def peek(index=0)
+    @source[@pos + index]
   end
 
-  def eof()
+  def eof?()
     @pos >= @source.length
   end
 
   def fail(message)
-    fail message + "line: " + line + " col: " + col
+    fail message + ' (' + line + ':' + col + ')'
   end
 end
 
-input_streamer = InputStreamer.new(File.read("source.l"))
+lexer = Lexer.new(InputStreamer.new(File.read('source.l')))
 
-while !input_streamer.eof() do
-  puts(input_streamer.peek())
-  input_streamer.next()
+while !lexer.eof() do
+  puts(lexer.next())
 end
