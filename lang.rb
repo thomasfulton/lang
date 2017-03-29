@@ -75,6 +75,10 @@ class Lexer
     ch =~ /[+\-*\/%=&|<>!?]/
   end
 
+  def punc?(ch)
+    ch =~ /[,(){}\[\]]/
+  end
+
   def whitespace?(ch)
     ch =~ /[[:space:]]/
   end
@@ -145,6 +149,11 @@ class Lexer
 
     if str_start?(ch)
       return read_str()
+    end
+
+    if punc?(ch)
+      @input.next()
+      LexerToken.new(:punc, ch)
     end
 
     @input.croak("Can't handle character: " + ch)
